@@ -12,7 +12,7 @@ import pickle
 CHECKPOINT_PATH = "./model"
 
 MAX_EPOCH = 100
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 
 FEATURE_DIM = 0
 CLASS_DIM = 0
@@ -41,19 +41,21 @@ def main():
     # train_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_train.csv', encoder=sent_t, device=device)
     # val_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_val.csv', encoder=sent_t, device=device)
     # test_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_test.csv', encoder=sent_t, device=device)
-    train_dataset = check_saved_data(mode='train')
-    val_dataset = check_saved_data(mode='val')
-    test_dataset = check_saved_data(mode='test')
+    train_dataset_coarse = check_saved_data(mode='train', grain='coarse')
+    val_dataset_coarse = check_saved_data(mode='val', grain='coarse')
+    train_dataset_fine = check_saved_data(mode='train', grain='fine')
+    val_dataset_fine = check_saved_data(mode='val', grain='fine')
+    test_dataset_fine = check_saved_data(mode='test', grain='fine')
 
 
     global FEATURE_DIM 
-    FEATURE_DIM = train_dataset[0]['p'].shape[0]
+    FEATURE_DIM = train_dataset_coarse[0]['p'].shape[0]
     global CLASS_DIM 
-    CLASS_DIM = train_dataset[0]['label'].shape[0]
+    CLASS_DIM = train_dataset_coarse[0]['label'].shape[0]
     classify_model = train_classifier(
-                                                    train_dataset=train_dataset,
-                                                    val_dataset=val_dataset,
-                                                    test_dataset=test_dataset,
+                                                    train_dataset=train_dataset_fine,
+                                                    val_dataset=val_dataset_fine,
+                                                    test_dataset=None,
                                                     dp_rate=0.1)
     # print_results(node_gnn_result)
 
@@ -92,17 +94,21 @@ def train_classifier(train_dataset, val_dataset, test_dataset, **model_kwargs):
               "test": test_result['test_accuracy']}
     return model, result
 
-def check_saved_data(mode):
-    if mode not in ['train', 'val', 'test']:
-        raise Exception('Mode error. train val test')
-    if os.path.exists(f'./data/processed/dataset_{mode}.pkl'):
-        print(f'Data found, mode = {mode}. Loading...')
-        with open(f'./data/processed/dataset_{mode}.pkl', 'rb') as f:
+def check_saved_data(mode, grain):
+    if os.path.exists(f'./data/processed/dataset_{mode}_{grain}.pkl'):
+        print(f'Data found, mode = {mode}, {grain}. Loading...')
+        with open(f'./data/processed/dataset_{mode}_{grain}.pkl', 'rb') as f:
             dataset = pickle.load(f)
             f.close()
     else:
-        dataset = CustomEmbeddingDataset(sentences_file=f'data/preprocessed/chaos_{mode}.csv', encoder=sent_t, device=device)
-        with open(f'./data/processed/dataset_{mode}.pkl', 'wb') as f:
+        if grain == 'coarse':
+            path = f'data/preprocessed/nli_{grain}_{mode}.csv'
+        elif grain == 'fine':
+            path = f'data/preprocessed/chaos_{mode}.csv'
+        else:
+            raise Exception('File not found')
+        dataset = CustomEmbeddingDataset(sentences_file=path, encoder=sent_t, device=device)
+        with open(f'./data/processed/dataset_{mode}_{grain}.pkl', 'wb') as f:
             pickle.dump(dataset, f)
             f.close()
     return dataset

@@ -8,26 +8,18 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 class Classifier(nn.Module):
     def __init__(self, embed_dim, h_dim, out_dim, dp_rate=0.1, **kwargs):
         super(Classifier, self).__init__()
-        # self.l1 = nn.Linear(in_dim, h_dim)
-        # self.tanh1= nn.Tanh()
-        # self.dropout = nn.Dropout(dp_rate)
-        # self.l2 = nn.Linear(h_dim, out_dim)
         
         self.classify_stack = nn.Sequential(
             nn.Linear(3*embed_dim, h_dim),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Dropout(dp_rate),
             nn.Linear(h_dim, h_dim),
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Dropout(dp_rate),
             nn.Linear(h_dim, out_dim),
         )
     
     def forward(self, p, h):
-        # h = self.l1(x)
-        # h = self.tanh1(h)
-        # h = self.dropout(h)
-        # y = self.l2(h)
         logits = self.classify_stack(torch.cat([p, h, p - h], dim=1))
         return logits
 
