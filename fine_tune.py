@@ -53,24 +53,21 @@ def main():
     
     model.fit(train_objectives=[(train_dataloader, train_loss)], 
               evaluator=evaluator,
-              epochs=1, 
+              epochs=30, 
               warmup_steps=100,
-              evaluation_steps=500,
-              output_path='model/tune',
+              evaluation_steps=1000,
+              output_path='model/tuning_vanilla_',
               save_best_model=True)
+    
+
+    
 
 def add_annotation_info(df):
     df['num_of_annotation'] = df.apply(lambda x: np.sum(x['label_count']), axis=1)
     df['converted_score'] = df.apply(lambda x: (x['label_count'][0]*1+x['label_count'][1]*0+x['label_count'][2]*(-1)) / np.sum(x['label_count']), axis=1)
     return df
     
-def build_examples(df, seed=0):    
-    # np.random.seed(seed)
-    # noises = np.random.normal(0, 0.05, len(df))
-    # examples = []
-    # for i, row in df.iterrows():
-    #     examples.append(InputExample(texts=[row['premise'], row['hypothesis']], label=float(row['converted_score']+noises[i])))
-    # return examples
+def build_examples(df):
     examples = []
     for i, row in df.iterrows():
         examples.append(MyInputExample(texts=[row['premise'], row['hypothesis']], label=torch.tensor(row['label_dist'])))

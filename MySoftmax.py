@@ -24,22 +24,7 @@ class MySoftmaxLoss(SoftmaxLoss):
                                             concatenation_sent_difference, 
                                             concatenation_sent_multiplication, 
                                             loss_fct)
-        # self.model = model
-        # self.num_labels = num_labels
-        # self.concatenation_sent_rep = concatenation_sent_rep
-        # self.concatenation_sent_difference = concatenation_sent_difference
-        # self.concatenation_sent_multiplication = concatenation_sent_multiplication
 
-        # num_vectors_concatenated = 0
-        # if concatenation_sent_rep:
-        #     num_vectors_concatenated += 2
-        # if concatenation_sent_difference:
-        #     num_vectors_concatenated += 1
-        # if concatenation_sent_multiplication:
-        #     num_vectors_concatenated += 1
-        # logger.info("Softmax loss: #Vectors concatenated: {}".format(num_vectors_concatenated))
-        # self.classifier = nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, num_labels)
-        # self.loss_fct = loss_fct
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
