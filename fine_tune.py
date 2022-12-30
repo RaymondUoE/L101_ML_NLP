@@ -40,8 +40,8 @@ def main():
     # val_data = val_data[val_data['num_of_annotation']==5].copy().reset_index(drop=True)
     
     # build examples
-    train_examples = build_examples(train_data, seed=4)
-    val_examples = build_examples(val_data, seed=5)
+    train_examples = build_examples(train_data)
+    val_examples = build_examples(val_data)
     
     train_dataloader = DataLoader(train_examples, batch_size=32)
     val_dataloader = DataLoader(val_examples, batch_size=32)
