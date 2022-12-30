@@ -34,6 +34,7 @@ class MyLabelAccuracyEvaluator(LabelAccuracyEvaluator):
         logger.info("Evaluation on the "+self.name+" dataset"+out_txt)
         self.dataloader.collate_fn = model.smart_batching_collate
         for step, batch in enumerate(self.dataloader):
+            
             features, labels = batch
             for idx in range(len(features)):
                 features[idx] = batch_to_device(features[idx], model.device)

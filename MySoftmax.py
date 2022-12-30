@@ -26,6 +26,7 @@ class MySoftmaxLoss(SoftmaxLoss):
                                             concatenation_sent_difference, 
                                             concatenation_sent_multiplication, 
                                             loss_fct)
+        self.loss_hard = nn.CrossEntropyLoss()
         num_vectors_concatenated = 0
         if concatenation_sent_rep:
             num_vectors_concatenated += 2
@@ -33,14 +34,14 @@ class MySoftmaxLoss(SoftmaxLoss):
             num_vectors_concatenated += 1
         if concatenation_sent_multiplication:
             num_vectors_concatenated += 1
-        if round == 2:
-            if hidden == 0:
-                raise Exception('Need to provide hidden dimension.')
-            self.classifier = nn.Sequential(
-                                            nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, hidden),
-                                            nn.ReLU(),
-                                            nn.Linear(hidden, num_labels),
-                                            )
+        # if round == 2:
+        #     if hidden == 0:
+        #         raise Exception('Need to provide hidden dimension.')
+        #     self.classifier = nn.Sequential(
+        #                                     nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, hidden),
+        #                                     nn.ReLU(),
+        #                                     nn.Linear(hidden, num_labels),
+        #                                     )
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
@@ -62,7 +63,11 @@ class MySoftmaxLoss(SoftmaxLoss):
         output = self.classifier(features)
         
         if labels is not None:
-            loss = self.loss_fct(output, labels)
+            soft_loss = self.loss_fct(output, labels)
+            # hard_label = torch.argmax(labels, dim=1)
+            # hard_loss = self.loss_hard(output, hard_label)
+            # loss = max(soft_loss, hard_loss)
+            loss = soft_loss
             return loss
         else:
             return reps, output
