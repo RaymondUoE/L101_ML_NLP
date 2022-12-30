@@ -6,6 +6,7 @@ import logging
 from sentence_transformers.util import batch_to_device
 import os
 import csv
+import pickle
 
 
 logger = logging.getLogger(__name__)
@@ -58,4 +59,38 @@ class MyLabelAccuracyEvaluator(LabelAccuracyEvaluator):
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy])
 
+        return accuracy
+    
+    def eval_model(self, model, dataloader, output_path):
+        model.eval()
+        total = 0
+        correct = 0
+        pred = []
+        label_record = []
+        dataloader.collate_fn = model.model.smart_batching_collate
+        for step, batch in enumerate(dataloader):
+            features, labels = batch
+            for idx in range(len(features)):
+                features[idx] = batch_to_device(features[idx], model.model.device)
+            labels = labels.to(model.model.device)
+            with torch.no_grad():
+                _, prediction = model(features, labels=None)
+
+            total += prediction.size(0)
+            correct += torch.argmax(prediction, dim=1).eq(torch.argmax(labels, dim=1)).sum().item()
+            pred.append(prediction)
+            label_record.append(labels)
+        accuracy = correct/total
+
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+            
+        with open(f'{output_path}/predicted.pkl', "wb") as f:
+            pred = torch.cat(pred, dim=0).cpu().detach().numpy()
+            pickle.dump(pred, f)
+            f.close()
+        with open(f'{output_path}/labels.pkl', "wb") as f:
+            label_record = torch.cat(label_record, dim=0).cpu().detach().numpy()
+            pickle.dump(label_record, f)
+            f.close()
         return accuracy

@@ -47,8 +47,8 @@ def process_mnli(chaos_path, out_path):
         mnli = mnli[~mnli.pairID.isin(chaos_mnli.uid)].copy()
         mnli['label_count'] = mnli.apply(lambda x: count_labels(x['annotator_labels']), axis=1)
         mnli['label_dist'] = mnli.apply(lambda x: label_counts_to_dist(x['label_count']), axis=1)
-        # choose those that have >=3 labels
-        mnli = mnli[mnli['label_count'].map(sum) >= 3].reset_index(drop=True).copy()
+        # choose those that have 5 labels
+        mnli = mnli[mnli['label_count'].map(sum) == 5].reset_index(drop=True).copy()
         if mode != 'dev_mismatched':
             dfs.append(mnli)
         else:

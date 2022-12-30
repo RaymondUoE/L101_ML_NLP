@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict, Callable
+from typing import Iterable, Dict, Callable
 from sentence_transformers import SentenceTransformer
 import logging
 
@@ -16,7 +16,9 @@ class MySoftmaxLoss(SoftmaxLoss):
                  concatenation_sent_rep: bool = True,
                  concatenation_sent_difference: bool = True,
                  concatenation_sent_multiplication: bool = False,
-                 loss_fct: Callable = nn.CrossEntropyLoss()):
+                 loss_fct: Callable = nn.CrossEntropyLoss(),
+                 round=1,
+                 hidden=0):
         super(MySoftmaxLoss, self).__init__(model, 
                                             sentence_embedding_dimension, 
                                             num_labels, 
@@ -24,7 +26,21 @@ class MySoftmaxLoss(SoftmaxLoss):
                                             concatenation_sent_difference, 
                                             concatenation_sent_multiplication, 
                                             loss_fct)
-
+        num_vectors_concatenated = 0
+        if concatenation_sent_rep:
+            num_vectors_concatenated += 2
+        if concatenation_sent_difference:
+            num_vectors_concatenated += 1
+        if concatenation_sent_multiplication:
+            num_vectors_concatenated += 1
+        if round == 2:
+            if hidden == 0:
+                raise Exception('Need to provide hidden dimension.')
+            self.classifier = nn.Sequential(
+                                            nn.Linear(num_vectors_concatenated * sentence_embedding_dimension, hidden),
+                                            nn.ReLU(),
+                                            nn.Linear(hidden, num_labels),
+                                            )
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
