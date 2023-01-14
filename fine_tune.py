@@ -45,7 +45,7 @@ def main():
     val_data_path = 'data/preprocessed/chaos_val.csv'
     test_data_path = 'data/preprocessed/chaos_test.csv'
         
-    #     fine_tune_soft(r1_model_path, device, model_out_path, train_data_path, val_data_path, test_data_path=test_data_path, epoch=R2_EPOCH, predict=True, round=2)
+    #     fine_tune_soft(r1_model_path, device, model_out_path, train_data_path, val_data_path, test_data_path=test_data_path, epoch=R2_EPOCH, round=2)
     fine_tune_soft(model_id, device, model_out_path, train_data_path, val_data_path, test_data_path=test_data_path, epoch=R2_EPOCH, predict=True, round=2)
     
     
@@ -62,7 +62,7 @@ def main():
     #     val_data_path = 'data/preprocessed/chaos_val.csv'
     #     test_data_path = 'data/preprocessed/chaos_test.csv'
         
-    #     fine_tune_soft(r1_model_path, device, model_out_path, train_data_path, val_data_path, test_data_path=test_data_path, epoch=R2_EPOCH, predict=True, round=2)
+    #     fine_tune_soft(r1_model_path, device, model_out_path, train_data_path, val_data_path, test_data_path=test_data_path, epoch=R2_EPOCH, round=2)
     
 
 def fine_tune_soft(model_id, device, model_out_path, train_data_path, val_data_path, epoch, round, test_data_path=None, predict=False):
