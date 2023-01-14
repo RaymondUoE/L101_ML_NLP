@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 from dataset import CustomEmbeddingDataset
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 import pickle
+import json
 
 CHECKPOINT_PATH = "./model"
 
@@ -21,35 +22,70 @@ torch.manual_seed(22)
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
 print(device)
 
-# model_id = "sentence-transformers/all-MiniLM-L6-v2"
-model_id = "./model/tuning_vanilla_"
-sent_t = SentenceTransformer(model_id, device=device)
-model_name = 'mini_tuned_on_soft'
+model_names = [
+    'sentence-transformers/all-MiniLM-L6-v2',
+    'sentence-transformers/roberta-base-nli-mean-tokens',
+    'sentence-transformers/all-mpnet-base-v2',
+    'mini_R1_hard',
+    'mini_R1_soft',
+    'mini_R2_SKIP_soft',
+    'mini_R2_hard_soft',
+    'mini_R2_soft_soft',
+    'mpnet_R1_hard',
+    'mpnet_R1_soft',
+    'mpnet_R2_SKIP_soft',
+    'mpnet_R2_hard_soft',
+    'mpnet_R2_soft_soft',
+    'robertaNLI_R1_hard',
+    'robertaNLI_R1_soft',
+    'robertaNLI_R2_SKIP_soft',
+    'robertaNLI_R2_hard_soft',
+    'robertaNLI_R2_soft_soft',
+]
 
-def main():
-    # train_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_train.csv', encoder=sent_t, device=device)
-    # val_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_val.csv', encoder=sent_t, device=device)
-    # test_dataset = CustomEmbeddingDataset(sentences_file='data/preprocessed/chaos_test.csv', encoder=sent_t, device=device)
-    # train_dataset_coarse = check_saved_data(mode='train', grain='coarse')
-    # val_dataset_coarse = check_saved_data(mode='val', grain='coarse')
-    train_dataset_fine = check_saved_data(mode='train', grain='fine', model=model_name)
-    val_dataset_fine = check_saved_data(mode='val', grain='fine', model=model_name)
-    test_dataset_fine = check_saved_data(mode='test', grain='fine', model=model_name)
+def main(model_name):
+    model_name = model_name
+    train_dataset = check_saved_data(mode='train', model_name=model_name)
+    val_dataset = check_saved_data(mode='val', model_name=model_name)
+    test_dataset = check_saved_data(mode='test', model_name=model_name)
 
 
     global FEATURE_DIM 
-    FEATURE_DIM = train_dataset_fine[0]['p'].shape[0]
+    FEATURE_DIM = train_dataset[0]['p'].shape[0]
     global CLASS_DIM 
-    CLASS_DIM = train_dataset_fine[0]['label'].shape[0]
+    CLASS_DIM = train_dataset[0]['label'].shape[0]
+
     classify_model, result = train_classifier(
-                                                    train_dataset=train_dataset_fine,
-                                                    val_dataset=val_dataset_fine,
-                                                    test_dataset=test_dataset_fine,
+                                                    train_dataset=train_dataset,
+                                                    val_dataset=val_dataset,
+                                                    test_dataset=test_dataset,
                                                     dp_rate=0.1)
     
-    
-    
     print_results(result)
+    
+    # inference
+    pred_model = classify_model.get_model()
+    pred_model.eval().to(device)
+    preds = []
+    labels = []
+    for d in val_dataset:
+        # print(d['p'].unsqueeze(1).shape)
+        pred = pred_model(d['p'].unsqueeze(0), d['h'].unsqueeze(0))
+        preds.append(pred.cpu().detach().numpy())
+        labels.append(d['label'].cpu().detach().numpy())
+    
+    pred_path = os.path.join('predictions', model_name)
+    os.makedirs(pred_path, exist_ok=True)
+    with open(os.path.join(pred_path, 'preds.pkl'), 'wb') as f:
+        pickle.dump(preds, f)
+        f.close()
+    with open(os.path.join(pred_path, 'labels.pkl'), 'wb') as f:
+        pickle.dump(labels, f)
+        f.close()
+    with open(os.path.join(pred_path, 'results.txt'), 'w') as f:
+        json.dump(result, f)
+        f.close()
+    
     
 
 def train_classifier(train_dataset, val_dataset, test_dataset, **model_kwargs):
@@ -87,21 +123,23 @@ def train_classifier(train_dataset, val_dataset, test_dataset, **model_kwargs):
               "test": test_result['test_accuracy']}
     return model, result
 
-def check_saved_data(mode, grain, model):
-    save_path = os.path.join('./data/embedding/', model, f'dataset_{mode}_{grain}.pkl')
+def check_saved_data(mode, model_name):
+    save_path = os.path.join('./data/embedding/', model_name)
+    os.makedirs(save_path, exist_ok=True)
+    save_path = os.path.join(save_path, f'dataset_chaos_{mode}.pkl')
     if os.path.exists(save_path):
-        print(f'Data found, mode = {mode}, {grain}. Loading...')
-        with open(path, 'rb') as f:
+        print(f'Data found, mode = {mode}. Loading...')
+        with open(save_path, 'rb') as f:
             dataset = pickle.load(f)
             f.close()
     else:
-        if grain == 'coarse':
-            path = f'data/preprocessed/nli_{grain}_{mode}.csv'
-        elif grain == 'fine':
-            path = f'data/preprocessed/chaos_{mode}.csv'
+        data_path = f'data/preprocessed/chaos_{mode}.csv'
+        if not model_name.startswith('sentence-transformer'):
+            model_path = os.path.join('model', model_name)
         else:
-            raise Exception('File not found')
-        dataset = CustomEmbeddingDataset(sentences_file=path, encoder=sent_t, device=device)
+            model_path = model_name
+        model = SentenceTransformer(model_path, device=device)
+        dataset = CustomEmbeddingDataset(sentences_file=data_path, encoder=model, device=device)
         with open(save_path, 'wb') as f:
             pickle.dump(dataset, f)
             f.close()
@@ -118,4 +156,6 @@ def print_results(result_dict):
 
 
 if __name__ == "__main__":
-    main()
+    for m in model_names[5:]:
+        # print(m)
+        main(m)

@@ -20,7 +20,7 @@ class Classifier(nn.Module):
         )
     
     def forward(self, p, h):
-        logits = self.classify_stack(torch.cat([p, h, p - h], dim=1))
+        logits = self.classify_stack(torch.cat([p, h, torch.abs(p - h)], dim=1))
         return logits
 
 class NLIClassify(pl.LightningModule):
@@ -52,7 +52,7 @@ class NLIClassify(pl.LightningModule):
         
              
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = optim.AdamW(self.parameters(), lr=1e-3)
 
         # optimizer = optim.SGD(self.parameters(), lr=0.001, momentum=0.9, weight_decay=2e-3)
         return optimizer
@@ -104,3 +104,6 @@ class NLIClassify(pl.LightningModule):
         test_accuracy = self.test_acc.compute()
         self.log("test_accuracy", test_accuracy, batch_size=self.batch_size)
         self.test_acc.reset()
+    
+    def get_model(self):
+        return self.model

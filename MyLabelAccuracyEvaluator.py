@@ -82,6 +82,7 @@ class MyLabelAccuracyEvaluator(LabelAccuracyEvaluator):
             pred.append(prediction)
             label_record.append(labels)
         accuracy = correct/total
+        print(accuracy)
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)

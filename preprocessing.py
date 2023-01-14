@@ -21,7 +21,7 @@ def process_snli(chaos_path, out_path):
         snli['label_count'] = snli.apply(lambda x: count_labels(x['annotator_labels']), axis=1)
         snli['label_dist'] = snli.apply(lambda x: label_counts_to_dist(x['label_count']), axis=1)
         # choose those that have >=3 labels
-        snli = snli[snli['label_count'].map(sum) >= 3].reset_index(drop=True).copy()
+        snli = snli[snli['label_count'].map(sum) == 5].reset_index(drop=True).copy()
         dfs.append(snli)
     del snli
     full = pd.concat(dfs, ignore_index=True)
