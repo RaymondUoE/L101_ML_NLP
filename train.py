@@ -156,6 +156,6 @@ def print_results(result_dict):
 
 
 if __name__ == "__main__":
-    for m in model_names[5:]:
+    for m in model_names:
         # print(m)
         main(m)
